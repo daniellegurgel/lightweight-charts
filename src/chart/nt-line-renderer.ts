@@ -1,0 +1,122 @@
+/**
+ * nt-line-renderer — Desenha a reta no canvas.
+ *
+ * Arquivo CRIADO pelo fork Neurotrading — Danielle Gurgel
+ *
+ * Só desenha. Não faz hit test, não gerencia estado.
+ * Recebe coordenadas em pixels já convertidas.
+ *
+ * Responsabilidades:
+ *   - Desenhar a linha entre dois pontos
+ *   - Desenhar handles (círculos nas pontas) quando selecionada
+ *   - Desenhar preview (linha temporária durante criação)
+ */
+
+import { PointPx } from './nt-geometry';
+import { NtLineStyle } from './nt-line-primitive';
+
+/** Parâmetros pra desenhar uma reta definitiva */
+export interface NtLineRenderParams {
+	p1: PointPx;
+	p2: PointPx;
+	style: NtLineStyle;
+	selected: boolean;
+	selectedColor?: string;
+}
+
+/** Parâmetros pra desenhar o preview durante criação */
+export interface NtLinePreviewParams {
+	origin: PointPx;
+	cursor: PointPx;
+	style: NtLineStyle;
+}
+
+/** Raio visual dos handles */
+const HANDLE_RADIUS = 4;
+/** Raio visual da âncora do ponto 1 durante preview */
+const ANCHOR_RADIUS = 3;
+
+/**
+ * Desenha uma reta definitiva no canvas.
+ * Se selecionada, desenha handles nas pontas.
+ */
+export function desenharReta(
+	ctx: CanvasRenderingContext2D,
+	params: NtLineRenderParams
+): void {
+	const { p1, p2, style, selected, selectedColor } = params;
+	const cor = selected && selectedColor ? selectedColor : style.color;
+
+	// Linha
+	ctx.save();
+	ctx.beginPath();
+	ctx.strokeStyle = cor;
+	ctx.lineWidth = style.width;
+	ctx.lineCap = 'round';
+	aplicarDash(ctx, style.dash);
+	ctx.moveTo(p1.x, p1.y);
+	ctx.lineTo(p2.x, p2.y);
+	ctx.stroke();
+	ctx.restore();
+
+	// Handles (só quando selecionada)
+	if (selected) {
+		desenharHandle(ctx, p1, cor);
+		desenharHandle(ctx, p2, cor);
+	}
+}
+
+/**
+ * Desenha o preview da reta durante criação.
+ * Âncora fixa no ponto de origem + linha até o cursor.
+ */
+export function desenharPreview(
+	ctx: CanvasRenderingContext2D,
+	params: NtLinePreviewParams
+): void {
+	const { origin, cursor, style } = params;
+
+	// Linha preview (mais transparente)
+	ctx.save();
+	ctx.beginPath();
+	ctx.strokeStyle = style.color;
+	ctx.lineWidth = style.width;
+	ctx.lineCap = 'round';
+	ctx.globalAlpha = 0.6;
+	aplicarDash(ctx, style.dash);
+	ctx.moveTo(origin.x, origin.y);
+	ctx.lineTo(cursor.x, cursor.y);
+	ctx.stroke();
+	ctx.restore();
+
+	// Âncora no ponto de origem (ponto fixo)
+	ctx.save();
+	ctx.beginPath();
+	ctx.fillStyle = style.color;
+	ctx.arc(origin.x, origin.y, ANCHOR_RADIUS, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+}
+
+// --- Auxiliares ---
+
+function desenharHandle(ctx: CanvasRenderingContext2D, p: PointPx, cor: string): void {
+	// Fundo branco
+	ctx.beginPath();
+	ctx.fillStyle = 'rgba(255,255,255,0.9)';
+	ctx.arc(p.x, p.y, HANDLE_RADIUS, 0, Math.PI * 2);
+	ctx.fill();
+
+	// Borda com cor da reta
+	ctx.beginPath();
+	ctx.strokeStyle = cor;
+	ctx.lineWidth = 1.5;
+	ctx.arc(p.x, p.y, HANDLE_RADIUS, 0, Math.PI * 2);
+	ctx.stroke();
+}
+
+function aplicarDash(ctx: CanvasRenderingContext2D, dash: string): void {
+	if (dash === 'dashed') ctx.setLineDash([6, 6]);
+	else if (dash === 'dotted') ctx.setLineDash([2, 4]);
+	else ctx.setLineDash([]);
+}
