@@ -1,13 +1,11 @@
 /**
  * API pública do NtDrawingManager.
- *
  * Arquivo CRIADO pelo fork Neurotrading — Danielle Gurgel
- *
- * Wrapper mínimo — expõe só o que o app usa.
+ * Usa WeakMap (via nt-api-internals) pra acessar instância interna.
  */
 
-import { NtDrawingManager } from '../chart/nt-drawing-manager';
 import { NtLineHitResult } from '../chart/drawings/trend-line/nt-trend-line-hit-test';
+import { getManagerInternal } from '../chart/nt-api-internals';
 
 export interface INtDrawingManagerApi {
 	hitTest(pxX: number, pxY: number): NtLineHitResult | null;
@@ -17,25 +15,19 @@ export interface INtDrawingManagerApi {
 }
 
 export class NtDrawingManagerApi implements INtDrawingManagerApi {
-	private _impl: NtDrawingManager;
-
-	public constructor(impl: NtDrawingManager) {
-		this._impl = impl;
-	}
-
 	public hitTest(pxX: number, pxY: number): NtLineHitResult | null {
-		return this._impl.hitTest(pxX, pxY);
+		return getManagerInternal(this).hitTest(pxX, pxY);
 	}
 
 	public select(id: string): void {
-		this._impl.select(id);
+		getManagerInternal(this).select(id);
 	}
 
 	public deselect(): void {
-		this._impl.deselect();
+		getManagerInternal(this).deselect();
 	}
 
 	public destroy(): void {
-		this._impl.destroy();
+		getManagerInternal(this).destroy();
 	}
 }

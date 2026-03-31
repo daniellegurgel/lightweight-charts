@@ -11,7 +11,7 @@ import { NtCoordinateCallbacks, NtDrawingManager } from './nt-drawing-manager';
 import { NtLineStyle } from './drawings/trend-line/nt-trend-line-primitive';
 import { NtToolCallbacks, NtTrendLineTool } from './drawings/trend-line/nt-trend-line-tool';
 import { NtDrawingsPrimitive } from './nt-drawings-primitive';
-import { registerManager, getManagerInternal, registerTool, getToolInternal } from './nt-api-internals';
+import { registerManager, getManagerInternal, registerTool, getToolInternal, registerPrimitive } from './nt-api-internals';
 
 import { INtDrawingManagerApi, NtDrawingManagerApi } from '../api/nt-drawing-manager-api';
 import { INtDrawingsPrimitiveApi, NtDrawingsPrimitiveApi } from '../api/nt-drawings-primitive-api';
@@ -21,7 +21,7 @@ export type { INtDrawingManagerApi, INtDrawingsPrimitiveApi, INtTrendLineToolApi
 
 export function createNtDrawingManager(coords: NtCoordinateCallbacks): INtDrawingManagerApi {
 	const impl = new NtDrawingManager(coords);
-	const api = new NtDrawingManagerApi(impl);
+	const api = new NtDrawingManagerApi();
 	registerManager(api, impl);
 	return api;
 }
@@ -33,7 +33,7 @@ export function createNtTrendLineTool(
 ): INtTrendLineToolApi {
 	const mgr = getManagerInternal(managerApi);
 	const impl = new NtTrendLineTool(mgr, callbacks, style);
-	const api = new NtTrendLineToolApi(impl);
+	const api = new NtTrendLineToolApi();
 	registerTool(api, impl);
 	return api;
 }
@@ -50,8 +50,10 @@ export function createNtDrawingsPrimitive(
 	const mgr = getManagerInternal(managerApi);
 	const tool = getToolInternal(toolApi);
 	const impl = new NtDrawingsPrimitive({ manager: mgr, tool });
+	const api = new NtDrawingsPrimitiveApi();
+	registerPrimitive(api, impl);
 	return {
-		api: new NtDrawingsPrimitiveApi(impl),
+		api,
 		primitive: impl,
 	};
 }

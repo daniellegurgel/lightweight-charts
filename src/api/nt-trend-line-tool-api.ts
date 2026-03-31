@@ -1,13 +1,10 @@
 /**
  * API pública do NtTrendLineTool.
- *
  * Arquivo CRIADO pelo fork Neurotrading — Danielle Gurgel
- *
- * Wrapper mínimo — expõe só o que o app usa.
- * Nomes estáveis, não afetados pelo build transformer.
+ * Usa WeakMap (via nt-api-internals) pra acessar instância interna.
  */
 
-import { NtTrendLineTool } from '../chart/drawings/trend-line/nt-trend-line-tool';
+import { getToolInternal } from '../chart/nt-api-internals';
 
 export interface INtTrendLineToolApi {
 	state(): 'idle' | 'waiting-first' | 'waiting-second';
@@ -19,33 +16,27 @@ export interface INtTrendLineToolApi {
 }
 
 export class NtTrendLineToolApi implements INtTrendLineToolApi {
-	private _impl: NtTrendLineTool;
-
-	public constructor(impl: NtTrendLineTool) {
-		this._impl = impl;
-	}
-
 	public state(): 'idle' | 'waiting-first' | 'waiting-second' {
-		return this._impl.state();
+		return getToolInternal(this).state();
 	}
 
 	public activate(): void {
-		this._impl.activate();
+		getToolInternal(this).activate();
 	}
 
 	public deactivate(): void {
-		this._impl.deactivate();
+		getToolInternal(this).deactivate();
 	}
 
 	public cancel(): void {
-		this._impl.cancel();
+		getToolInternal(this).cancel();
 	}
 
 	public handleClick(pxX: number, pxY: number): boolean {
-		return this._impl.handleClick(pxX, pxY);
+		return getToolInternal(this).handleClick(pxX, pxY);
 	}
 
 	public handleMove(pxX: number, pxY: number): boolean {
-		return this._impl.handleMove(pxX, pxY);
+		return getToolInternal(this).handleMove(pxX, pxY);
 	}
 }
