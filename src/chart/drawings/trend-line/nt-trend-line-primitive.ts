@@ -86,3 +86,38 @@ export function moverPonta(
 	}
 	return { ...reta, point2: novoMundo };
 }
+
+// ============================================================================
+// Serialização
+// ============================================================================
+
+/** Serializa uma reta pra JSON (persistência) */
+export function retaToJSON(reta: NtLineData): object {
+	return {
+		id: reta.id,
+		type: 'trend-line',
+		point1: reta.point1,
+		point2: reta.point2,
+		style: reta.style,
+		visible: reta.visible,
+		locked: reta.locked,
+	};
+}
+
+/** Reconstrói uma reta a partir de JSON */
+export function retaFromJSON(data: any): NtLineData | null {
+	if (!data || !data.point1 || !data.point2) return null;
+
+	return {
+		id: data.id || gerarIdReta(),
+		point1: { timeSec: data.point1.timeSec, price: data.point1.price },
+		point2: { timeSec: data.point2.timeSec, price: data.point2.price },
+		style: {
+			color: data.style?.color ?? NT_LINE_DEFAULT_STYLE.color,
+			width: data.style?.width ?? NT_LINE_DEFAULT_STYLE.width,
+			dash: data.style?.dash ?? NT_LINE_DEFAULT_STYLE.dash,
+		},
+		visible: data.visible ?? true,
+		locked: data.locked ?? false,
+	};
+}
