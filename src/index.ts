@@ -49,7 +49,7 @@ export function version(): string {
 	Neurotrading — Ferramentas de desenho
 */
 export { createNtDrawingManager, createNtTrendLineTool, createNtDrawingsPrimitive } from './chart/nt-exports';
-export type { INtDrawingManager, INtTrendLineTool, INtDrawingsPrimitive } from './chart/nt-exports';
+export type { INtDrawingManagerApi, INtTrendLineToolApi, INtDrawingsPrimitiveApi } from './chart/nt-exports';
 export type { NtDrawingEventType, NtDrawingEvent, NtCoordinateCallbacks } from './chart/nt-drawing-manager';
 export type { NtToolState, NtToolCallbacks, NtPreviewState } from './chart/drawings/trend-line/nt-trend-line-tool';
 export { desenharReta, desenharPreview } from './chart/drawings/trend-line/nt-trend-line-renderer';
