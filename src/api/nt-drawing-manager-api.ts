@@ -13,6 +13,12 @@ export interface INtDrawingManagerApi {
 	deselect(): void;
 	selectedId(): string | null;
 	remove(id: string): void;
+	/** Inicia drag se acertou um desenho. Retorna true se iniciou. */
+	startDrag(pxX: number, pxY: number): boolean;
+	/** Move o desenho/handle durante drag. */
+	moveDrag(pxX: number, pxY: number): void;
+	/** Finaliza o drag e consolida a posição. */
+	endDrag(): void;
 	destroy(): void;
 }
 
@@ -36,6 +42,18 @@ export class NtDrawingManagerApi implements INtDrawingManagerApi {
 
 	public remove(id: string): void {
 		getManagerInternal(this).remove(id);
+	}
+
+	public startDrag(pxX: number, pxY: number): boolean {
+		return getManagerInternal(this).startDrag(pxX, pxY);
+	}
+
+	public moveDrag(pxX: number, pxY: number): boolean {
+		return getManagerInternal(this).moveDrag(pxX, pxY);
+	}
+
+	public endDrag(): void {
+		getManagerInternal(this).endDrag();
 	}
 
 	public destroy(): void {
