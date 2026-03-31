@@ -10,6 +10,7 @@ export interface INtDrawingsPrimitiveApi {
 	requestUpdate(): void;
 }
 
+/** @public */
 export class NtDrawingsPrimitiveApi implements INtDrawingsPrimitiveApi {
 	public requestUpdate(): void {
 		getPrimitiveInternal(this).requestUpdate();

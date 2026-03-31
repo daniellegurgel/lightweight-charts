@@ -22,7 +22,10 @@ export interface NtDrawingsPrimitiveOptions {
 	tool: NtTrendLineTool;
 }
 
-export class NtDrawingsPrimitive {
+import { INtSeriesPrimitive } from './nt-exports';
+
+/** @public */
+export class NtDrawingsPrimitive implements INtSeriesPrimitive {
 	private _manager: NtDrawingManager;
 	private _tool: NtTrendLineTool;
 	private _paneViews: NtDrawingsPaneView[];
@@ -74,6 +77,7 @@ export class NtDrawingsPrimitive {
 	_getTool(): NtTrendLineTool { return this._tool; }
 }
 
+/** @public */
 class NtDrawingsPaneView implements IPrimitivePaneView {
 	private readonly _renderer: NtDrawingsRenderer;
 
@@ -90,6 +94,7 @@ class NtDrawingsPaneView implements IPrimitivePaneView {
 	}
 }
 
+/** @public */
 class NtDrawingsRenderer implements IPrimitivePaneRenderer {
 	private _primitive: NtDrawingsPrimitive;
 

@@ -14,6 +14,7 @@ export interface INtDrawingManagerApi {
 	destroy(): void;
 }
 
+/** @public */
 export class NtDrawingManagerApi implements INtDrawingManagerApi {
 	public hitTest(pxX: number, pxY: number): NtLineHitResult | null {
 		return getManagerInternal(this).hitTest(pxX, pxY);

@@ -15,6 +15,7 @@ export interface INtTrendLineToolApi {
 	handleMove(pxX: number, pxY: number): boolean;
 }
 
+/** @public */
 export class NtTrendLineToolApi implements INtTrendLineToolApi {
 	public state(): 'idle' | 'waiting-first' | 'waiting-second' {
 		return getToolInternal(this).state();

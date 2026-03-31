@@ -38,9 +38,19 @@ export function createNtTrendLineTool(
 	return api;
 }
 
+/** Interface que espelha o que o chart espera de uma primitiva */
+export interface INtSeriesPrimitive {
+	attached(param: { requestUpdate: () => void }): void;
+	detached(): void;
+	updateAllViews(): void;
+	paneViews(): readonly object[];
+	hitTest(x: number, y: number): object | null;
+	requestUpdate(): void;
+}
+
 export interface NtDrawingsPrimitiveResult {
 	api: INtDrawingsPrimitiveApi;
-	primitive: unknown;
+	primitive: INtSeriesPrimitive;
 }
 
 export function createNtDrawingsPrimitive(
