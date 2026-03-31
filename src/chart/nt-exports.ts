@@ -38,9 +38,14 @@ export function createNtTrendLineTool(
 	return api;
 }
 
+/** Parâmetro recebido pelo attached() — nomes públicos */
+export interface INtAttachedParam {
+	requestUpdate: () => void;
+}
+
 /** Interface que espelha o que o chart espera de uma primitiva */
 export interface INtSeriesPrimitive {
-	attached(param: { requestUpdate: () => void }): void;
+	attached(param: INtAttachedParam): void;
 	detached(): void;
 	updateAllViews(): void;
 	paneViews(): readonly object[];

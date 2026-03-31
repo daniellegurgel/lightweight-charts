@@ -22,7 +22,7 @@ export interface NtDrawingsPrimitiveOptions {
 	tool: NtTrendLineTool;
 }
 
-import { INtSeriesPrimitive } from './nt-exports';
+import { INtSeriesPrimitive, INtAttachedParam } from './nt-exports';
 
 /** @public */
 export class NtDrawingsPrimitive implements INtSeriesPrimitive {
@@ -39,7 +39,7 @@ export class NtDrawingsPrimitive implements INtSeriesPrimitive {
 
 	// --- ISeriesPrimitive ---
 
-	attached(param: { requestUpdate: () => void }): void {
+	attached(param: INtAttachedParam): void {
 		this._requestUpdate = param.requestUpdate;
 	}
 

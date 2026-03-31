@@ -26,9 +26,19 @@ Então pra nosso código funcionar, precisamos de 3 coisas:
 
 3. **WeakMap pra wrappers** — os wrappers de API (`NtTrendLineToolApi`, etc.) precisam acessar a instância interna. Se guardarmos num campo `_impl`, o transformer renomeia pra `_private__impl`. O WeakMap é uma variável de módulo — o transformer não toca em variáveis de módulo, só em campos de classe.
 
+Além disso:
+
+4. **`INtAttachedParam`** — o método `attached(param)` da primitiva recebe um objeto do chart com `requestUpdate`. Se o tipo do parâmetro não for uma interface exportada, o transformer renomeia `param.requestUpdate` pra `param._internal_requestUpdate` — e o chart passa pelo nome original. Resultado: a primitiva nunca recebe a função de redraw. Solução: criar `INtAttachedParam` exportada com `requestUpdate: () => void`.
+
+**Regra**: qualquer parâmetro de método que recebe objeto do chart precisa ter tipo exportado como interface pública.
+
+5. **Coordenadas no renderer** — a primitiva usa `useMediaCoordinateSpace` que já escala por `pixelRatio`. NÃO multiplicar coordenadas por `pixelRatio` no renderer — só espessuras e raios. Duplicar pixelRatio desloca a reta.
+
+6. **Preview da ferramenta** — usar `pointermove` direto no container DOM, não `subscribeCrosshairMove`. O crosshair não foi feito pra ser motor de preview. Quando a ferramenta tá ativa, bloquear pan/scroll/scale do chart via `handleScroll: false, handleScale: false`.
+
 ## Resumo simples
 
-O build renomeia tudo que é "interno". Pra nosso código funcionar, temos que dizer pro build: "isso aqui é público, não renomeia". Fazemos isso com interfaces exportadas, `@public`, e WeakMap.
+O build renomeia tudo que é "interno". Pra nosso código funcionar, temos que dizer pro build: "isso aqui é público, não renomeia". Fazemos isso com interfaces exportadas, `@public`, WeakMap, e `INtAttachedParam`.
 
 ## Como implementar novas ferramentas
 

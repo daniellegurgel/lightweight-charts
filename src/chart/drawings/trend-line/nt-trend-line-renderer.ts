@@ -4,11 +4,11 @@
  * Arquivo CRIADO pelo fork Neurotrading — Danielle Gurgel
  *
  * Só desenha. Não faz hit test, não gerencia estado.
- * Recebe coordenadas em pixels já convertidas.
+ * Recebe coordenadas em media space (pixels CSS).
  *
- * pixelRatio: todas as coordenadas são escaladas por pixelRatio
- * pra renderização correta em telas retina/HiDPI.
- * Pattern copiado de lightweight-charts-drawing (MIT) — canvas-utils.ts
+ * IMPORTANTE: como a primitiva usa useMediaCoordinateSpace,
+ * o canvas já está escalado por pixelRatio. NÃO multiplicar
+ * coordenadas por pixelRatio — só espessuras e raios.
  */
 
 import { PointPx } from '../../nt-geometry';
@@ -21,8 +21,6 @@ export interface NtLineRenderParams {
 	style: NtLineStyle;
 	selected: boolean;
 	selectedColor?: string;
-	/** Ratio de pixels do dispositivo (window.devicePixelRatio). Default: 1 */
-	pixelRatio?: number;
 }
 
 /** Parâmetros pra desenhar o preview durante criação */
@@ -30,7 +28,6 @@ export interface NtLinePreviewParams {
 	origin: PointPx;
 	cursor: PointPx;
 	style: NtLineStyle;
-	pixelRatio?: number;
 }
 
 /** Raio visual dos handles */
@@ -47,26 +44,23 @@ export function desenharReta(
 	params: NtLineRenderParams
 ): void {
 	const { p1, p2, style, selected, selectedColor } = params;
-	const pr = params.pixelRatio ?? 1;
 	const cor = selected && selectedColor ? selectedColor : style.color;
 
-	// Linha
 	ctx.save();
 	ctx.beginPath();
 	ctx.strokeStyle = cor;
-	ctx.lineWidth = style.width * pr;
+	ctx.lineWidth = style.width;
 	ctx.lineCap = 'round';
 	ctx.lineJoin = 'round';
-	aplicarDash(ctx, style.dash, pr);
-	ctx.moveTo(p1.x * pr, p1.y * pr);
-	ctx.lineTo(p2.x * pr, p2.y * pr);
+	aplicarDash(ctx, style.dash);
+	ctx.moveTo(p1.x, p1.y);
+	ctx.lineTo(p2.x, p2.y);
 	ctx.stroke();
 	ctx.restore();
 
-	// Handles (só quando selecionada)
 	if (selected) {
-		desenharHandle(ctx, p1, cor, pr);
-		desenharHandle(ctx, p2, cor, pr);
+		desenharHandle(ctx, p1, cor);
+		desenharHandle(ctx, p2, cor);
 	}
 }
 
@@ -79,57 +73,44 @@ export function desenharPreview(
 	params: NtLinePreviewParams
 ): void {
 	const { origin, cursor, style } = params;
-	const pr = params.pixelRatio ?? 1;
 
-	// Linha preview (tracejada, mais transparente)
 	ctx.save();
 	ctx.beginPath();
 	ctx.strokeStyle = style.color;
-	ctx.lineWidth = style.width * pr;
+	ctx.lineWidth = style.width;
 	ctx.lineCap = 'round';
 	ctx.globalAlpha = 0.6;
-	ctx.setLineDash([5 * pr, 5 * pr]);
-	ctx.moveTo(origin.x * pr, origin.y * pr);
-	ctx.lineTo(cursor.x * pr, cursor.y * pr);
+	ctx.setLineDash([5, 5]);
+	ctx.moveTo(origin.x, origin.y);
+	ctx.lineTo(cursor.x, cursor.y);
 	ctx.stroke();
 	ctx.restore();
 
-	// Âncora no ponto de origem
 	ctx.save();
 	ctx.beginPath();
 	ctx.fillStyle = style.color;
-	ctx.arc(origin.x * pr, origin.y * pr, ANCHOR_RADIUS * pr, 0, Math.PI * 2);
+	ctx.arc(origin.x, origin.y, ANCHOR_RADIUS, 0, Math.PI * 2);
 	ctx.fill();
 	ctx.restore();
 }
 
 // --- Auxiliares ---
 
-/**
- * Desenha handle no estilo TradingView (centro escuro + anel colorido).
- * Pattern copiado de lightweight-charts-drawing (MIT) — canvas-utils.ts
- */
-function desenharHandle(ctx: CanvasRenderingContext2D, p: PointPx, cor: string, pr: number): void {
-	const x = p.x * pr;
-	const y = p.y * pr;
-	const radius = HANDLE_RADIUS * pr;
-
-	// Centro escuro
+function desenharHandle(ctx: CanvasRenderingContext2D, p: PointPx, cor: string): void {
 	ctx.beginPath();
 	ctx.fillStyle = '#131722';
-	ctx.arc(x, y, radius, 0, Math.PI * 2);
+	ctx.arc(p.x, p.y, HANDLE_RADIUS, 0, Math.PI * 2);
 	ctx.fill();
 
-	// Anel colorido
 	ctx.beginPath();
 	ctx.strokeStyle = cor;
-	ctx.lineWidth = 1.5 * pr;
-	ctx.arc(x, y, radius - (0.75 * pr), 0, Math.PI * 2);
+	ctx.lineWidth = 1.5;
+	ctx.arc(p.x, p.y, HANDLE_RADIUS - 0.75, 0, Math.PI * 2);
 	ctx.stroke();
 }
 
-function aplicarDash(ctx: CanvasRenderingContext2D, dash: string, pr: number): void {
-	if (dash === 'dashed') ctx.setLineDash([6 * pr, 6 * pr]);
-	else if (dash === 'dotted') ctx.setLineDash([2 * pr, 4 * pr]);
+function aplicarDash(ctx: CanvasRenderingContext2D, dash: string): void {
+	if (dash === 'dashed') ctx.setLineDash([6, 6]);
+	else if (dash === 'dotted') ctx.setLineDash([2, 4]);
 	else ctx.setLineDash([]);
 }
