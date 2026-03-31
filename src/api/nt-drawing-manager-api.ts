@@ -11,6 +11,8 @@ export interface INtDrawingManagerApi {
 	hitTest(pxX: number, pxY: number): NtLineHitResult | null;
 	select(id: string): void;
 	deselect(): void;
+	selectedId(): string | null;
+	remove(id: string): void;
 	destroy(): void;
 }
 
@@ -26,6 +28,14 @@ export class NtDrawingManagerApi implements INtDrawingManagerApi {
 
 	public deselect(): void {
 		getManagerInternal(this).deselect();
+	}
+
+	public selectedId(): string | null {
+		return getManagerInternal(this).selectedId();
+	}
+
+	public remove(id: string): void {
+		getManagerInternal(this).remove(id);
 	}
 
 	public destroy(): void {
