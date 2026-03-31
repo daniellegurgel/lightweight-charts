@@ -80,6 +80,10 @@ export class NtDrawingManager {
 
 	/** Adiciona um desenho */
 	public add(drawing: NtLineData): void {
+		if (this._drawings.has(drawing.id)) {
+			console.warn(`[NtDrawingManager] Desenho com id ${drawing.id} já existe — ignorando`);
+			return;
+		}
 		this._drawings.set(drawing.id, drawing);
 		this._emit({ type: 'drawing:added', drawingId: drawing.id });
 	}

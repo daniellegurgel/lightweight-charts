@@ -88,6 +88,25 @@ export function moverPonta(
 }
 
 // ============================================================================
+// Conversão de tempo robusta
+// ============================================================================
+
+/**
+ * Converte qualquer formato de tempo do Lightweight Charts pra segundos Unix.
+ * Aceita: number (epoch seconds), string ("YYYY-MM-DD"), BusinessDay ({year, month, day}).
+ * Copiado de lightweight-charts-drawing (MIT) — base-line.ts
+ */
+export function timeToSeconds(time: unknown): number {
+	if (typeof time === 'number') return time;
+	if (typeof time === 'string') return new Date(time).getTime() / 1000;
+	if (typeof time === 'object' && time !== null && 'year' in time) {
+		const bd = time as { year: number; month: number; day: number };
+		return new Date(bd.year, bd.month - 1, bd.day).getTime() / 1000;
+	}
+	return 0;
+}
+
+// ============================================================================
 // Serialização
 // ============================================================================
 
