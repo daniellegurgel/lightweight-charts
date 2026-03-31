@@ -1,7 +1,21 @@
+/**
+ * CandlesticksRenderer — Renderer de candles (candlestick).
+ *
+ * Arquivo MODIFICADO pelo fork Neurotrading — Danielle Gurgel
+ * Alteração: adicionado hitTest() para detecção nativa de clique/hover em candles.
+ *
+ * O hitTest verifica se o cursor está dentro da área do candle
+ * (retângulo delimitado por highY/lowY na vertical e barSpacing na horizontal).
+ * Retorna HoveredObject com o índice do candle clicado.
+ */
+
 import { BitmapCoordinatesRenderingScope } from 'fancy-canvas';
 
 import { fillRectInnerBorder } from '../helpers/canvas-helpers';
 
+import { HoveredObject } from '../model/chart-model';
+import { Coordinate } from '../model/coordinate';
+import { HitTestObjectData } from '../model/hit-test-data';
 import { CandlesticksColorerStyle } from '../model/series-bar-colorer';
 import { SeriesItemsIndexesRange } from '../model/time-data';
 
@@ -35,6 +49,52 @@ export class PaneRendererCandlesticks extends BitmapCoordinatesPaneRenderer {
 
 	public setData(data: PaneRendererCandlesticksData): void {
 		this._data = data;
+	}
+
+	/**
+	 * Hit test para candles.
+	 *
+	 * Verifica se o cursor (x, y) está dentro da área visual de algum candle:
+	 * - Horizontal: bar.x ± metade do barSpacing
+	 * - Vertical: entre highY e lowY (inclui pavio inteiro)
+	 *
+	 * @param x - Coordenada X do cursor (pixels, relativa ao painel)
+	 * @param y - Coordenada Y do cursor (pixels, relativa ao painel)
+	 * @returns HoveredObject com índice do candle, ou null se não acertou
+	 */
+	public hitTest(x: Coordinate, y: Coordinate): HoveredObject | null {
+		if (this._data === null || this._data.visibleRange === null) {
+			return null;
+		}
+
+		const { bars, barSpacing, visibleRange } = this._data;
+		// Metade da largura visual do candle
+		const halfBar = barSpacing / 2;
+
+		for (let i = visibleRange.from; i < visibleRange.to; i++) {
+			const bar = bars[i];
+			const top = Math.min(bar.highY, bar.lowY);
+			const bottom = Math.max(bar.highY, bar.lowY);
+
+			if (
+				x >= bar.x - halfBar &&
+				x <= bar.x + halfBar &&
+				y >= top &&
+				y <= bottom
+			) {
+				const data: HitTestObjectData = {
+					objectType: 'series',
+					part: 'body',
+					itemIndex: i,
+				};
+				return {
+					cursorStyle: 'pointer',
+					hitTestData: data,
+				};
+			}
+		}
+
+		return null;
 	}
 
 	protected override _drawImpl(renderingScope: BitmapCoordinatesRenderingScope): void {

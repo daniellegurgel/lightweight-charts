@@ -1,3 +1,11 @@
+/**
+ * ChartWidget — Widget principal do gráfico (DOM, eventos, renderização).
+ *
+ * Arquivo MODIFICADO pelo fork Neurotrading — Danielle Gurgel
+ * Alteração: chamada a handleClick no método _onPaneWidgetClicked para
+ * integrar o sistema de seleção nativa de objetos (SelectionManager).
+ */
+
 import { Size, size } from 'fancy-canvas';
 
 import { ensureDefined, ensureNotNull } from '../helpers/assertions';
@@ -859,6 +867,8 @@ export class ChartWidget<HorzScaleItem> implements IDestroyable, IChartWidgetBas
 		point: Point | null,
 		event: TouchMouseEventData
 	): void {
+		// Fork Neurotrading — alimenta o selection manager no clique
+		this._model.handleClick();
 		this._clicked.fire(() => this._getMouseEventParamsImpl(time, point, event, pane));
 	}
 

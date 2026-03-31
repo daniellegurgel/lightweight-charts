@@ -1,3 +1,11 @@
+/**
+ * PaneHitTest — Lógica de hit test no pane (painel de preço).
+ *
+ * Arquivo MODIFICADO pelo fork Neurotrading — Danielle Gurgel
+ * Alteração: propagação de cursorStyle do resultado do hitTest dos renderers
+ * para que o cursor mude visualmente ao passar sobre objetos clicáveis.
+ */
+
 import { IPaneView } from '../views/pane/ipane-view';
 
 import { HoveredObject } from './chart-model';
@@ -129,6 +137,7 @@ export function hitTestPane(
 					source: source,
 					view: sourceResult.view,
 					object: sourceResult.object,
+					cursorStyle: sourceResult.object?.cursorStyle,
 				};
 			}
 		}

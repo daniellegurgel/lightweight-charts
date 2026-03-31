@@ -1,5 +1,18 @@
+/**
+ * HistogramRenderer — Renderer de histograma (barras verticais de volume, etc.).
+ *
+ * Arquivo MODIFICADO pelo fork Neurotrading — Danielle Gurgel
+ * Alteração: adicionado hitTest() para detecção nativa de clique/hover em barras do histograma.
+ *
+ * O hitTest verifica se o cursor está dentro da área da barra
+ * (entre histogramBase e o topo da barra, dentro da largura do barSpacing).
+ */
+
 import { BitmapCoordinatesRenderingScope } from 'fancy-canvas';
 
+import { HoveredObject } from '../model/chart-model';
+import { Coordinate } from '../model/coordinate';
+import { HitTestObjectData } from '../model/hit-test-data';
 import { PricedValue } from '../model/price-scale';
 import { SeriesItemsIndexesRange, TimedValue, TimePointIndex } from '../model/time-data';
 
@@ -36,6 +49,51 @@ export class PaneRendererHistogram extends BitmapCoordinatesPaneRenderer {
 	public setData(data: PaneRendererHistogramData): void {
 		this._data = data;
 		this._precalculatedCache = [];
+	}
+
+	/**
+	 * Hit test para barras de histograma.
+	 *
+	 * Verifica se o cursor está dentro da área visual da barra:
+	 * - Horizontal: bar.x ± metade do barSpacing
+	 * - Vertical: entre o topo da barra (item.y) e a base do histograma
+	 *
+	 * @param x - Coordenada X do cursor (pixels, relativa ao painel)
+	 * @param y - Coordenada Y do cursor (pixels, relativa ao painel)
+	 * @returns HoveredObject com índice da barra, ou null se não acertou
+	 */
+	public hitTest(x: Coordinate, y: Coordinate): HoveredObject | null {
+		if (this._data === null || this._data.visibleRange === null) {
+			return null;
+		}
+
+		const { items, barSpacing, histogramBase, visibleRange } = this._data;
+		const halfBar = barSpacing / 2;
+
+		for (let i = visibleRange.from; i < visibleRange.to; i++) {
+			const item = items[i];
+			const top = Math.min(item.y, histogramBase);
+			const bottom = Math.max(item.y, histogramBase);
+
+			if (
+				x >= item.x - halfBar &&
+				x <= item.x + halfBar &&
+				y >= top &&
+				y <= bottom
+			) {
+				const data: HitTestObjectData = {
+					objectType: 'series',
+					part: 'body',
+					itemIndex: i,
+				};
+				return {
+					cursorStyle: 'pointer',
+					hitTestData: data,
+				};
+			}
+		}
+
+		return null;
 	}
 
 	protected override _drawImpl({ context: ctx, horizontalPixelRatio, verticalPixelRatio }: BitmapCoordinatesRenderingScope): void {

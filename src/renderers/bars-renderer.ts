@@ -1,8 +1,22 @@
+/**
+ * BarsRenderer — Renderer de barras OHLC.
+ *
+ * Arquivo MODIFICADO pelo fork Neurotrading — Danielle Gurgel
+ * Alteração: adicionado hitTest() para detecção nativa de clique/hover em barras.
+ *
+ * O hitTest verifica se o cursor está dentro da área da barra
+ * (retângulo delimitado por highY/lowY na vertical e barSpacing na horizontal).
+ * Mesma lógica do candlestick renderer — barras ocupam a mesma área visual.
+ */
+
 import { BitmapCoordinatesRenderingScope } from 'fancy-canvas';
 
 import { ensureNotNull } from '../helpers/assertions';
 
 import { BarCoordinates, BarPrices } from '../model/bar';
+import { HoveredObject } from '../model/chart-model';
+import { Coordinate } from '../model/coordinate';
+import { HitTestObjectData } from '../model/hit-test-data';
 import { BarColorerStyle } from '../model/series-bar-colorer';
 import { SeriesItemsIndexesRange, TimedValue } from '../model/time-data';
 
@@ -30,6 +44,50 @@ export class PaneRendererBars extends BitmapCoordinatesPaneRenderer {
 
 	public setData(data: PaneRendererBarsData): void {
 		this._data = data;
+	}
+
+	/**
+	 * Hit test para barras OHLC.
+	 *
+	 * Mesma lógica do candlestick: verifica se o cursor está dentro
+	 * da área visual da barra (highY/lowY × barSpacing).
+	 *
+	 * @param x - Coordenada X do cursor (pixels, relativa ao painel)
+	 * @param y - Coordenada Y do cursor (pixels, relativa ao painel)
+	 * @returns HoveredObject com índice da barra, ou null se não acertou
+	 */
+	public hitTest(x: Coordinate, y: Coordinate): HoveredObject | null {
+		if (this._data === null || this._data.visibleRange === null) {
+			return null;
+		}
+
+		const { bars, barSpacing, visibleRange } = this._data;
+		const halfBar = barSpacing / 2;
+
+		for (let i = visibleRange.from; i < visibleRange.to; i++) {
+			const bar = bars[i];
+			const top = Math.min(bar.highY, bar.lowY);
+			const bottom = Math.max(bar.highY, bar.lowY);
+
+			if (
+				x >= bar.x - halfBar &&
+				x <= bar.x + halfBar &&
+				y >= top &&
+				y <= bottom
+			) {
+				const data: HitTestObjectData = {
+					objectType: 'series',
+					part: 'body',
+					itemIndex: i,
+				};
+				return {
+					cursorStyle: 'pointer',
+					hitTestData: data,
+				};
+			}
+		}
+
+		return null;
 	}
 
 	// eslint-disable-next-line complexity

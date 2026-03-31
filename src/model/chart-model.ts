@@ -1,3 +1,11 @@
+/**
+ * ChartModel — Modelo principal do gráfico (state, séries, escalas, crosshair).
+ *
+ * Arquivo MODIFICADO pelo fork Neurotrading — Danielle Gurgel
+ * Alterações: adicionado SelectionManager, método handleClick e imports relacionados
+ * para suportar seleção nativa de objetos no gráfico.
+ */
+
 /// <reference types="_build-time-constants" />
 
 import { assert, ensureNotNull } from '../helpers/assertions';
@@ -14,6 +22,8 @@ import { Coordinate } from './coordinate';
 import { Crosshair, CrosshairOptions } from './crosshair';
 import { DefaultPriceScaleId, isDefaultPriceScale } from './default-price-scale';
 import { GridOptions } from './grid';
+import { HitTestObjectData } from './hit-test-data';
+import { createEnrichedHitResult } from './hit-test-result';
 import { IPrimitiveHitTestSource } from './idata-source';
 import { IHorzScaleBehavior, InternalHorzScaleItem } from './ihorz-scale-behavior';
 import { InvalidateMask, InvalidationLevel, ITimeScaleAnimation } from './invalidate-mask';
@@ -26,6 +36,7 @@ import { DEFAULT_STRETCH_FACTOR, MIN_PANE_HEIGHT, Pane } from './pane';
 import { hitTestPane } from './pane-hit-test';
 import { Point } from './point';
 import { PriceScale, PriceScaleOptions } from './price-scale';
+import { SelectionManager } from './selection-manager';
 import { Series } from './series';
 import { SeriesType } from './series-options';
 import { LogicalRange, TimePointIndex, TimeScalePoint } from './time-data';
@@ -165,9 +176,17 @@ export interface AxisDoubleClickOptions {
 	price: boolean;
 }
 
+/**
+ * Objeto retornado pelo hitTest() de um renderer.
+ *
+ * Fork Neurotrading — adicionado cursorStyle pra permitir que renderers
+ * built-in (linha, candle, barra) definam o cursor ao passar por cima.
+ */
 export interface HoveredObject {
 	hitTestData?: unknown;
 	externalId?: string;
+	/** Estilo do cursor CSS (ex: 'pointer'). Fork Neurotrading. */
+	cursorStyle?: string;
 }
 
 export interface HoveredSource {
@@ -419,6 +438,9 @@ export interface IChartModelBase {
 	hoveredSource(): HoveredSource | null;
 	setHoveredSource(source: HoveredSource | null): void;
 
+	/** Fork Neurotrading — gerenciador de seleção */
+	selectionManager(): SelectionManager;
+
 	crosshairSource(): Crosshair;
 
 	startScrollPrice(pane: Pane, priceScale: PriceScale, x: number): void;
@@ -469,6 +491,8 @@ export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase 
 
 	private _width: number = 0;
 	private _hoveredSource: HoveredSource | null = null;
+	/** Fork Neurotrading — gerenciador de seleção de objetos */
+	private readonly _selectionManager: SelectionManager = new SelectionManager();
 	private readonly _priceScalesOptionsChanged: Delegate = new Delegate();
 	private _crosshairMoved: Delegate<TimePointIndex | null, Point | null, TouchMouseEventData | null> = new Delegate();
 
@@ -520,6 +544,46 @@ export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase 
 
 	public hoveredSource(): HoveredSource | null {
 		return this._hoveredSource;
+	}
+
+	/** Fork Neurotrading — acesso ao gerenciador de seleção */
+	public selectionManager(): SelectionManager {
+		return this._selectionManager;
+	}
+
+	/**
+	 * Fork Neurotrading — processa clique e atualiza seleção.
+	 * Chamado pelo chart-widget quando o usuário clica no gráfico.
+	 */
+	public handleClick(): void {
+		const hovered = this._hoveredSource;
+
+		if (hovered === null || hovered.object === undefined) {
+			// Clicou no fundo — limpa seleção
+			this._selectionManager.clear();
+			return;
+		}
+
+		const hitData = hovered.object.hitTestData as HitTestObjectData | undefined;
+		if (!hitData) {
+			this._selectionManager.clear();
+			return;
+		}
+
+		// Descobrir o índice da série (identidade estável)
+		let seriesIndex = -1;
+		if (hovered.source instanceof Series) {
+			seriesIndex = this._serieses.indexOf(hovered.source as Series<SeriesType>);
+		}
+
+		const enriched = createEnrichedHitResult(
+			hitData,
+			seriesIndex,
+			hovered.object.cursorStyle ?? 'pointer',
+			hovered.object.externalId
+		);
+
+		this._selectionManager.select(enriched);
 	}
 
 	public setHoveredSource(source: HoveredSource | null): void {
@@ -949,6 +1013,9 @@ export class ChartModel<HorzScaleItem> implements IDestroyable, IChartModelBase 
 	public destroy(): void {
 		this._panes.forEach((p: Pane) => p.destroy());
 		this._panes.length = 0;
+
+		// Fork Neurotrading — limpar selection manager
+		this._selectionManager.destroy();
 
 		// to avoid memleaks
 		this._options.localization.priceFormatter = undefined;

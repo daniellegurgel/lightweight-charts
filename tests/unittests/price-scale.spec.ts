@@ -65,6 +65,8 @@ describe('PriceScale', () => {
 			hoveredSource: () => null,
 			setHoveredSource: () => {},
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+			selectionManager: () => ({} as any),
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
 			crosshairSource: () => ({} as any),
 			startScrollPrice: () => {},
 			scrollPriceTo: () => {},
