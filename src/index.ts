@@ -44,3 +44,19 @@ export { createUpDownMarkers } from './plugins/up-down-markers-plugin/wrapper';
 export function version(): string {
 	return process.env.BUILD_VERSION;
 }
+
+/*
+	Neurotrading — Ferramentas de desenho
+*/
+export { createNtDrawingManager, createNtTrendLineTool, createNtDrawingsPrimitive } from './chart/nt-exports';
+export type { INtDrawingManager, INtTrendLineTool, INtDrawingsPrimitive } from './chart/nt-exports';
+export type { NtDrawingEventType, NtDrawingEvent, NtCoordinateCallbacks } from './chart/nt-drawing-manager';
+export type { NtToolState, NtToolCallbacks, NtPreviewState } from './chart/drawings/trend-line/nt-trend-line-tool';
+export { desenharReta, desenharPreview } from './chart/drawings/trend-line/nt-trend-line-renderer';
+export type { NtLineRenderParams, NtLinePreviewParams } from './chart/drawings/trend-line/nt-trend-line-renderer';
+export { criarReta, moverReta, moverPonta, retaToJSON, retaFromJSON, timeToSeconds } from './chart/drawings/trend-line/nt-trend-line-primitive';
+export type { NtLineData, NtLineStyle } from './chart/drawings/trend-line/nt-trend-line-primitive';
+export { hitTestReta } from './chart/drawings/trend-line/nt-trend-line-hit-test';
+export type { NtLineHitResult, NtLineHitPart } from './chart/drawings/trend-line/nt-trend-line-hit-test';
+export { distanciaPonto, distanciaAoSegmento, distanciaALinha } from './chart/nt-geometry';
+export type { PointPx, PointWorld } from './chart/nt-geometry';

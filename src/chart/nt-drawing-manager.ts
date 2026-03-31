@@ -311,3 +311,8 @@ export class NtDrawingManager {
 		}
 	}
 }
+
+/** Factory — cria instância do NtDrawingManager */
+export function createNtDrawingManager(coords: NtCoordinateCallbacks): NtDrawingManager {
+	return new NtDrawingManager(coords);
+}

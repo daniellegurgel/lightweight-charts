@@ -178,3 +178,12 @@ export class NtTrendLineTool {
 		return { timeSec, price };
 	}
 }
+
+/** Factory — cria instância do NtTrendLineTool */
+export function createNtTrendLineTool(
+	manager: NtDrawingManager,
+	callbacks: NtToolCallbacks,
+	style?: Partial<NtLineStyle>
+): NtTrendLineTool {
+	return new NtTrendLineTool(manager, callbacks, style);
+}
