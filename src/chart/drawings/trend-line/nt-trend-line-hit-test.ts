@@ -12,7 +12,7 @@
  * Prioridade: handles primeiro (são menores e mais difíceis de acertar).
  */
 
-import { distanciaPonto, distanciaAoSegmento } from './nt-geometry';
+import { distanciaPonto, distanciaAoSegmento } from '../../nt-geometry';
 
 /** Parte da reta que foi acertada */
 export type NtLineHitPart = 'body' | 'start' | 'end';

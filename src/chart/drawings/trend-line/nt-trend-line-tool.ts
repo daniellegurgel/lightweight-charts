@@ -19,7 +19,7 @@
  * Renderiza direto no pipeline nativo — sem overlay canvas.
  */
 
-import { PointWorld, PointPx } from './nt-geometry';
+import { PointWorld, PointPx } from '../../nt-geometry';
 import {
 	NtLineData,
 	NtLineStyle,
@@ -27,10 +27,10 @@ import {
 	criarReta,
 	moverReta,
 	moverPonta,
-} from './nt-line-primitive';
-import { desenharReta, desenharPreview } from './nt-line-renderer';
-import { hitTestReta, NtLineHitResult } from './nt-line-hit-test';
-import { NtSelectionManager } from './nt-selection-manager';
+} from './nt-trend-line-primitive';
+import { desenharReta, desenharPreview } from './nt-trend-line-renderer';
+import { hitTestReta, NtLineHitResult } from './nt-trend-line-hit-test';
+import { NtSelectionManager } from '../../nt-selection-manager';
 
 // ============================================================================
 // Estado da ferramenta

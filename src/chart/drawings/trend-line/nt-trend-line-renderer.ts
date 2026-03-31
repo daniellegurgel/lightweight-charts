@@ -12,8 +12,8 @@
  *   - Desenhar preview (linha temporária durante criação)
  */
 
-import { PointPx } from './nt-geometry';
-import { NtLineStyle } from './nt-line-primitive';
+import { PointPx } from '../../nt-geometry';
+import { NtLineStyle } from './nt-trend-line-primitive';
 
 /** Parâmetros pra desenhar uma reta definitiva */
 export interface NtLineRenderParams {

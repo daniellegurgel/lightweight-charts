@@ -7,7 +7,7 @@
  * Não desenha, não faz hit test, não conhece canvas.
  */
 
-import { PointWorld } from './nt-geometry';
+import { PointWorld } from '../../nt-geometry';
 
 /** Estilo visual da reta */
 export interface NtLineStyle {
