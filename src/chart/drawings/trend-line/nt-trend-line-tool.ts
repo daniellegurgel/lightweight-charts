@@ -19,6 +19,7 @@
 import { PointWorld, PointPx } from '../../nt-geometry';
 import { NtLineStyle, NT_LINE_DEFAULT_STYLE, criarReta } from './nt-trend-line-primitive';
 import { NtDrawingManager } from '../../nt-drawing-manager';
+import { INtSnapEngine } from '../../nt-snap-engine';
 
 // ============================================================================
 // FSM — estados da ferramenta
@@ -60,10 +61,12 @@ export class NtTrendLineTool {
 	private _style: NtLineStyle;
 	private _callbacks: NtToolCallbacks;
 	private _manager: NtDrawingManager;
+	private _snapEngine: INtSnapEngine;
 
-	constructor(manager: NtDrawingManager, callbacks: NtToolCallbacks, style?: Partial<NtLineStyle>) {
+	constructor(manager: NtDrawingManager, callbacks: NtToolCallbacks, snapEngine: INtSnapEngine, style?: Partial<NtLineStyle>) {
 		this._manager = manager;
 		this._callbacks = callbacks;
+		this._snapEngine = snapEngine;
 		this._style = { ...NT_LINE_DEFAULT_STYLE, ...style };
 	}
 
@@ -134,18 +137,19 @@ export class NtTrendLineTool {
 		const world = this._pxToWorld(pxX, pxY);
 		if (!world) return false;
 
-		// Estado B → clique 1
+		// Estado B → clique 1 (snap imediato)
 		if (this._state === 'waiting-first') {
-			this._pendingP1 = world;
+			this._pendingP1 = this._snapEngine.snap(world, { x: pxX, y: pxY }, 'creation');
 			this._state = 'waiting-second';
 			this._callbacks.requestUpdate();
 			return true;
 		}
 
-		// Estado C → clique 2: cria reta
+		// Estado C → clique 2: snap e cria reta
 		if (this._state === 'waiting-second' && this._pendingP1) {
-			const reta = criarReta(this._pendingP1, world, this._style);
-			this._manager.add(reta);
+			const p2 = this._snapEngine.snap(world, { x: pxX, y: pxY }, 'creation');
+			const reta = criarReta(this._pendingP1, p2, this._style);
+			this._manager.add(reta);    // add() recebe ponto já snapado — só persiste
 			this._manager.select(reta.id);
 
 			this._state = 'idle';
@@ -183,7 +187,8 @@ export class NtTrendLineTool {
 export function createNtTrendLineTool(
 	manager: NtDrawingManager,
 	callbacks: NtToolCallbacks,
+	snapEngine: INtSnapEngine,
 	style?: Partial<NtLineStyle>
 ): NtTrendLineTool {
-	return new NtTrendLineTool(manager, callbacks, style);
+	return new NtTrendLineTool(manager, callbacks, snapEngine, style);
 }

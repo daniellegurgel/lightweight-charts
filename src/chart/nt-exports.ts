@@ -1,7 +1,7 @@
 /**
  * nt-exports — Factories públicas das ferramentas NT.
  *
- * Arquivo CRIADO pelo fork Neurotrading — Danielle Gurgel
+ * Arquivo CRIADO por  — Danielle Gurgel
  *
  * Cria instâncias internas, registra no nt-api-internals,
  * retorna wrappers públicos com nomes estáveis.
@@ -11,6 +11,7 @@ import { NtCoordinateCallbacks, NtDrawingManager } from './nt-drawing-manager';
 import { NtLineStyle } from './drawings/trend-line/nt-trend-line-primitive';
 import { NtToolCallbacks, NtTrendLineTool } from './drawings/trend-line/nt-trend-line-tool';
 import { NtDrawingsPrimitive } from './nt-drawings-primitive';
+import { INtSnapEngine } from './nt-snap-engine';
 import { registerManager, getManagerInternal, registerTool, getToolInternal, registerPrimitive } from './nt-api-internals';
 
 import { INtDrawingManagerApi, NtDrawingManagerApi } from '../api/nt-drawing-manager-api';
@@ -19,8 +20,8 @@ import { INtTrendLineToolApi, NtTrendLineToolApi } from '../api/nt-trend-line-to
 
 export type { INtDrawingManagerApi, INtDrawingsPrimitiveApi, INtTrendLineToolApi };
 
-export function createNtDrawingManager(coords: NtCoordinateCallbacks): INtDrawingManagerApi {
-	const impl = new NtDrawingManager(coords);
+export function createNtDrawingManager(coords: NtCoordinateCallbacks, snapEngine?: INtSnapEngine): INtDrawingManagerApi {
+	const impl = new NtDrawingManager(coords, snapEngine);
 	const api = new NtDrawingManagerApi();
 	registerManager(api, impl);
 	return api;
@@ -29,10 +30,11 @@ export function createNtDrawingManager(coords: NtCoordinateCallbacks): INtDrawin
 export function createNtTrendLineTool(
 	managerApi: INtDrawingManagerApi,
 	callbacks: NtToolCallbacks,
+	snapEngine: INtSnapEngine,
 	style?: Partial<NtLineStyle>
 ): INtTrendLineToolApi {
 	const mgr = getManagerInternal(managerApi);
-	const impl = new NtTrendLineTool(mgr, callbacks, style);
+	const impl = new NtTrendLineTool(mgr, callbacks, snapEngine, style);
 	const api = new NtTrendLineToolApi();
 	registerTool(api, impl);
 	return api;

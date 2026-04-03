@@ -17,8 +17,9 @@
  */
 
 import { PointPx, PointWorld } from './nt-geometry';
-import { NtLineData, moverReta, moverPonta } from './drawings/trend-line/nt-trend-line-primitive';
+import { NtLineData, moverReta, moverPonta, NT_LINE_DEFAULT_CONFIG, NT_LINE_DEFAULT_LABEL } from './drawings/trend-line/nt-trend-line-primitive';
 import { hitTestReta, NtLineHitResult } from './drawings/trend-line/nt-trend-line-hit-test';
+import { INtSnapEngine, NtSnapEngine } from './nt-snap-engine';
 
 // ============================================================================
 // Tipos de evento
@@ -47,6 +48,17 @@ export interface NtCoordinateCallbacks {
 	yToPrice: (y: number) => number | null;
 	timeToX: (timeSec: number) => number | null;
 	priceToY: (price: number) => number | null;
+
+	// --- Callbacks para extrapolação (bidirecional) ---
+	// Permitem converter coordenadas na área vazia (sem candles).
+	//
+	// Direção world → px (para render e hit test):
+	timeToLogical: (timeSec: number) => number | null;
+	logicalToCoordinate: (index: number) => number | null;
+	//
+	// Direção px → world (para drag):
+	coordinateToLogical: (x: number) => number | null;
+	logicalToTime: (logical: number) => number | null;
 }
 
 // ============================================================================
@@ -55,7 +67,7 @@ export interface NtCoordinateCallbacks {
 
 interface DragState {
 	lineId: string;
-	part: 'body' | 'start' | 'end';
+	part: 'body' | 'start' | 'end' | 'middle';
 	startPx: PointPx;
 }
 
@@ -69,9 +81,17 @@ export class NtDrawingManager {
 	private _drag: DragState | null = null;
 	private _listeners: NtDrawingEventListener[] = [];
 	private _coords: NtCoordinateCallbacks;
+	private _snapEngine: INtSnapEngine;
+	private _destroyed: boolean = false;
 
-	constructor(coords: NtCoordinateCallbacks) {
+	// Cache de última posição válida por desenho.
+	// Evita que a reta pisque quando timeToX/priceToY retorna null
+	// em frames intermediários (recálculo de escala, resize, etc).
+	private _lastValidPx: Map<string, { p1: PointPx; p2: PointPx }> = new Map();
+
+	constructor(coords: NtCoordinateCallbacks, snapEngine?: INtSnapEngine) {
 		this._coords = coords;
+		this._snapEngine = snapEngine ?? new NtSnapEngine();
 	}
 
 	// ================================================================
@@ -88,9 +108,27 @@ export class NtDrawingManager {
 		this._emit({ type: 'drawing:added', drawingId: drawing.id });
 	}
 
+	/** Atualiza campos de um desenho existente (merge parcial tipado) */
+	public update(id: string, patch: Partial<Omit<NtLineData, 'id'>>): void {
+		const existing = this._drawings.get(id);
+		if (!existing) return;
+
+		const updated: NtLineData = {
+			...existing,
+			...patch,
+			style: patch.style ? { ...existing.style, ...patch.style } : existing.style,
+			config: patch.config ? { ...existing.config, ...patch.config } : existing.config,
+			label: patch.label ? { ...existing.label, ...patch.label } : existing.label,
+		};
+
+		this._drawings.set(id, updated);
+		this._emit({ type: 'drawing:updated', drawingId: id });
+	}
+
 	/** Remove um desenho */
 	public remove(id: string): void {
 		this._drawings.delete(id);
+		this._lastValidPx.delete(id);
 		if (this._selectedId === id) {
 			this._selectedId = null;
 			this._emit({ type: 'drawing:deselected', drawingId: id });
@@ -112,6 +150,7 @@ export class NtDrawingManager {
 	public clear(): void {
 		const ids = Array.from(this._drawings.keys());
 		this._drawings.clear();
+		this._lastValidPx.clear();
 		this._selectedId = null;
 		for (const id of ids) {
 			this._emit({ type: 'drawing:removed', drawingId: id });
@@ -147,21 +186,48 @@ export class NtDrawingManager {
 	}
 
 	// ================================================================
+	// Resolução de coordenadas com cache anti-flicker
+	// ================================================================
+
+	/**
+	 * Resolve as coordenadas px de um desenho.
+	 * Se _worldToPx falhar em algum ponto (frame intermediário),
+	 * retorna a última posição válida do cache.
+	 * Elimina o "piscar" da reta durante recálculo de escala.
+	 */
+	public resolveRetaPx(reta: NtLineData): { p1: PointPx; p2: PointPx } | null {
+		if (this._destroyed) return null;
+		const p1 = this._worldToPx(reta.point1);
+		const p2 = this._worldToPx(reta.point2);
+
+		if (!p1 || !p2) {
+			// Conversão falhou — usar cache se existir
+			const cached = this._lastValidPx.get(reta.id);
+			return cached ?? null;
+		}
+
+		// Conversão OK — atualizar cache
+		const result = { p1, p2 };
+		this._lastValidPx.set(reta.id, result);
+		return result;
+	}
+
+	// ================================================================
 	// Hit test (delega pro hit test da ferramenta)
 	// ================================================================
 
 	/** Testa todos os desenhos. Retorna o mais recente que acertou */
 	public hitTest(pxX: number, pxY: number): NtLineHitResult | null {
+		if (this._destroyed) return null;
 		const linhas = Array.from(this._drawings.values()).reverse();
 
 		for (const reta of linhas) {
 			if (!reta.visible) continue;
 
-			const p1 = this._worldToPx(reta.point1);
-			const p2 = this._worldToPx(reta.point2);
-			if (!p1 || !p2) continue;
+			const result = this.resolveRetaPx(reta);
+			if (!result) continue;
 
-			const hit = hitTestReta(pxX, pxY, p1.x, p1.y, p2.x, p2.y, reta.style.width, reta.id);
+			const hit = hitTestReta(pxX, pxY, result.p1.x, result.p1.y, result.p2.x, result.p2.y, reta.style.width, reta.id, reta.config, reta.label);
 			if (hit) return hit;
 		}
 
@@ -191,7 +257,7 @@ export class NtDrawingManager {
 
 	/** Processa movimento durante drag */
 	public moveDrag(pxX: number, pxY: number): boolean {
-		if (!this._drag) return false;
+		if (this._destroyed || !this._drag) return false;
 
 		const reta = this._drawings.get(this._drag.lineId);
 		if (!reta) {
@@ -202,18 +268,41 @@ export class NtDrawingManager {
 		if (this._drag.part === 'body') {
 			const startWorld = this._pxToWorld(this._drag.startPx.x, this._drag.startPx.y);
 			const endWorld = this._pxToWorld(pxX, pxY);
-			if (!startWorld || !endWorld) return false;
+
+			if (!startWorld || !endWorld) {
+				// Conversão falhou mesmo com extrapolação — não atualiza startPx
+				// pra preservar o delta acumulado quando o cursor voltar.
+				return true;
+			}
 
 			const dt = endWorld.timeSec - startWorld.timeSec;
 			const dp = endWorld.price - startWorld.price;
 
-			this._drawings.set(reta.id, moverReta(reta, dt, dp));
+			if (dt !== 0 || dp !== 0) {
+				this._drawings.set(reta.id, moverReta(reta, dt, dp));
+			}
 			this._drag.startPx = { x: pxX, y: pxY };
-		} else {
+		} else if (this._drag.part === 'start' || this._drag.part === 'end') {
 			const novoMundo = this._pxToWorld(pxX, pxY);
-			if (!novoMundo) return false;
+			if (!novoMundo) return true;
 
-			this._drawings.set(reta.id, moverPonta(reta, this._drag.part, novoMundo));
+			// Snap magnético no handle (start/end)
+			const snapped = this._snapEngine.snap(novoMundo, { x: pxX, y: pxY }, 'drag');
+			this._drawings.set(reta.id, moverPonta(reta, this._drag.part, snapped));
+		} else if (this._drag.part === 'middle') {
+			// Ponto central — move a reta inteira (mesma lógica do body)
+			const startWorld = this._pxToWorld(this._drag.startPx.x, this._drag.startPx.y);
+			const endWorld = this._pxToWorld(pxX, pxY);
+
+			if (!startWorld || !endWorld) return true;
+
+			const dt = endWorld.timeSec - startWorld.timeSec;
+			const dp = endWorld.price - startWorld.price;
+
+			if (dt !== 0 || dp !== 0) {
+				this._drawings.set(reta.id, moverReta(reta, dt, dp));
+			}
+			this._drag.startPx = { x: pxX, y: pxY };
 		}
 
 		this._emit({ type: 'drawing:updated', drawingId: reta.id });
@@ -242,12 +331,14 @@ export class NtDrawingManager {
 			point1: d.point1,
 			point2: d.point2,
 			style: d.style,
+			config: d.config,
+			label: d.label,
 			visible: d.visible,
 			locked: d.locked,
 		}));
 	}
 
-	/** Importa desenhos de JSON */
+	/** Importa desenhos de JSON (retrocompatível — config/label opcionais) */
 	public importJSON(data: any[]): void {
 		for (const item of data) {
 			if (item.type === 'trend-line' && item.point1 && item.point2) {
@@ -255,7 +346,9 @@ export class NtDrawingManager {
 					id: item.id || `nt-line-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
 					point1: item.point1,
 					point2: item.point2,
-					style: item.style || { color: '#2962FF', width: 2, dash: 'solid' },
+					style: item.style || { color: '#2962FF', width: 1, dash: 'solid' },
+					config: { ...NT_LINE_DEFAULT_CONFIG, ...(item.config ?? {}) },
+					label: { ...NT_LINE_DEFAULT_LABEL, ...(item.label ?? {}) },
 					visible: item.visible ?? true,
 					locked: item.locked ?? false,
 				};
@@ -277,8 +370,10 @@ export class NtDrawingManager {
 	}
 
 	public destroy(): void {
+		this._destroyed = true;
 		this._listeners = [];
 		this._drawings.clear();
+		this._lastValidPx.clear();
 		this._selectedId = null;
 		this._drag = null;
 	}
@@ -292,17 +387,100 @@ export class NtDrawingManager {
 	}
 
 	private _worldToPx(p: PointWorld): PointPx | null {
-		const x = this._coords.timeToX(p.timeSec);
+		let x = this._coords.timeToX(p.timeSec);
 		const y = this._coords.priceToY(p.price);
+
+		// Se timeToX falhou (ponto fora da área com candles), extrapolar.
+		// Usa coordenadas lógicas — funcionam no futuro/passado sem candles.
+		if (x === null) {
+			x = this._extrapolarX(p.timeSec);
+		}
+
 		if (x === null || y === null) return null;
 		return { x, y };
 	}
 
+	/**
+	 * Extrapola posição X em pixels para timestamps fora da área com candles.
+	 *
+	 * Usa coordenadas lógicas (índice de barra) que são infinitas para
+	 * esquerda e direita, independente de ter candle ou não.
+	 *
+	 * Fluxo:
+	 *   1. timeToLogical(timeSec) → índice lógico fracionário
+	 *      (o callback extrapola a partir de candles conhecidos)
+	 *   2. logicalToCoordinate(floor) → pixel X da barra inteira
+	 *   3. Interpola a fração sub-barra usando barSpacing
+	 *
+	 * O canvas faz o clipping automaticamente.
+	 */
+	private _extrapolarX(timeSec: number): number | null {
+		const { timeToLogical, logicalToCoordinate } = this._coords;
+
+		// 1. Converter timestamp → índice lógico (pode ser fracionário)
+		const logical = timeToLogical(timeSec);
+		if (logical === null) return null;
+
+		// 2. Separar parte inteira e fração
+		const floor = Math.floor(logical);
+		const frac = logical - floor;
+
+		// 3. Pixel da barra inteira mais próxima
+		const xFloor = logicalToCoordinate(floor);
+		if (xFloor === null) return null;
+
+		// Sem fração — cai exatamente numa barra
+		if (frac === 0) return xFloor;
+
+		// 4. Interpolar a fração sub-barra
+		const xNext = logicalToCoordinate(floor + 1);
+		if (xNext === null) return xFloor;
+
+		return xFloor + frac * (xNext - xFloor);
+	}
+
 	private _pxToWorld(x: number, y: number): PointWorld | null {
-		const timeSec = this._coords.xToTime(x);
+		let timeSec = this._coords.xToTime(x);
 		const price = this._coords.yToPrice(y);
+
+		// Se xToTime falhou (área sem candle), extrapolar via coordenadas lógicas.
+		// Sem isso, o drag morre quando o cursor entra na área vazia.
+		if (timeSec === null) {
+			timeSec = this._extrapolarTime(x);
+		}
+
 		if (timeSec === null || price === null) return null;
 		return { timeSec, price };
+	}
+
+	/**
+	 * Extrapola timestamp para posições de pixel fora da área com candles.
+	 * Caminho inverso do _extrapolarX: pixel → lógico → tempo.
+	 *
+	 * Fluxo:
+	 *   1. coordinateToLogical(x) → índice lógico (fracionário, funciona em tudo)
+	 *   2. logicalToTime(logical) → timestamp extrapolado
+	 */
+	private _extrapolarTime(x: number): number | null {
+		const { coordinateToLogical, logicalToTime } = this._coords;
+
+		const logical = coordinateToLogical(x);
+		if (logical === null) return null;
+
+		// Interpolar manualmente entre dois índices inteiros —
+		// simétrico com _extrapolarX, evita jitter de arredondamento.
+		const floor = Math.floor(logical);
+		const frac = logical - floor;
+
+		const t0 = logicalToTime(floor);
+		if (t0 === null) return null;
+
+		if (frac === 0) return t0;
+
+		const t1 = logicalToTime(floor + 1);
+		if (t1 === null) return t0;
+
+		return t0 + frac * (t1 - t0);
 	}
 
 	private _emit(event: NtDrawingEvent): void {
@@ -313,6 +491,6 @@ export class NtDrawingManager {
 }
 
 /** Factory — cria instância do NtDrawingManager */
-export function createNtDrawingManager(coords: NtCoordinateCallbacks): NtDrawingManager {
-	return new NtDrawingManager(coords);
+export function createNtDrawingManager(coords: NtCoordinateCallbacks, snapEngine?: INtSnapEngine): NtDrawingManager {
+	return new NtDrawingManager(coords, snapEngine);
 }

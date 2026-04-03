@@ -5,6 +5,7 @@
  */
 
 import { NtLineHitResult } from '../chart/drawings/trend-line/nt-trend-line-hit-test';
+import { NtLineData } from '../chart/drawings/trend-line/nt-trend-line-primitive';
 import { getManagerInternal } from '../chart/nt-api-internals';
 
 export interface INtDrawingManagerApi {
@@ -12,12 +13,17 @@ export interface INtDrawingManagerApi {
 	select(id: string): void;
 	deselect(): void;
 	selectedId(): string | null;
+	/** Retorna um desenho pelo ID */
+	get(id: string): NtLineData | undefined;
+	/** Atualiza campos de um desenho existente (merge parcial) */
+	update(id: string, patch: Partial<Omit<NtLineData, 'id'>>): void;
 	remove(id: string): void;
-	/** Inicia drag se acertou um desenho. Retorna true se iniciou. */
+	/** Exporta todos os desenhos como JSON */
+	exportJSON(): object[];
+	/** Importa desenhos de JSON */
+	importJSON(data: any[]): void;
 	startDrag(pxX: number, pxY: number): boolean;
-	/** Move o desenho/handle durante drag. */
 	moveDrag(pxX: number, pxY: number): void;
-	/** Finaliza o drag e consolida a posição. */
 	endDrag(): void;
 	destroy(): void;
 }
@@ -40,8 +46,24 @@ export class NtDrawingManagerApi implements INtDrawingManagerApi {
 		return getManagerInternal(this).selectedId();
 	}
 
+	public get(id: string): NtLineData | undefined {
+		return getManagerInternal(this).get(id);
+	}
+
+	public update(id: string, patch: Partial<Omit<NtLineData, 'id'>>): void {
+		getManagerInternal(this).update(id, patch);
+	}
+
 	public remove(id: string): void {
 		getManagerInternal(this).remove(id);
+	}
+
+	public exportJSON(): object[] {
+		return getManagerInternal(this).exportJSON();
+	}
+
+	public importJSON(data: any[]): void {
+		getManagerInternal(this).importJSON(data);
 	}
 
 	public startDrag(pxX: number, pxY: number): boolean {

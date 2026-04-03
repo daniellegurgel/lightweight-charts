@@ -51,11 +51,15 @@ export function version(): string {
 export { createNtDrawingManager, createNtTrendLineTool, createNtDrawingsPrimitive } from './chart/nt-exports';
 export type { INtDrawingManagerApi, INtTrendLineToolApi, INtDrawingsPrimitiveApi } from './chart/nt-exports';
 export type { NtDrawingEventType, NtDrawingEvent, NtCoordinateCallbacks } from './chart/nt-drawing-manager';
+export type { INtSnapResolver, NtSnapPhase } from './chart/nt-snap-resolver';
+export type { INtSnapEngine } from './chart/nt-snap-engine';
+export { createNtSnapEngine } from './chart/nt-snap-engine';
 export type { NtToolState, NtToolCallbacks, NtPreviewState } from './chart/drawings/trend-line/nt-trend-line-tool';
 export { desenharReta, desenharPreview } from './chart/drawings/trend-line/nt-trend-line-renderer';
 export type { NtLineRenderParams, NtLinePreviewParams } from './chart/drawings/trend-line/nt-trend-line-renderer';
 export { criarReta, moverReta, moverPonta, retaToJSON, retaFromJSON, timeToSeconds } from './chart/drawings/trend-line/nt-trend-line-primitive';
-export type { NtLineData, NtLineStyle } from './chart/drawings/trend-line/nt-trend-line-primitive';
+export type { NtLineData, NtLineStyle, NtLineConfig, NtLineLabel } from './chart/drawings/trend-line/nt-trend-line-primitive';
+export { NT_LINE_DEFAULT_STYLE, NT_LINE_DEFAULT_CONFIG, NT_LINE_DEFAULT_LABEL } from './chart/drawings/trend-line/nt-trend-line-primitive';
 export { hitTestReta } from './chart/drawings/trend-line/nt-trend-line-hit-test';
 export type { NtLineHitResult, NtLineHitPart } from './chart/drawings/trend-line/nt-trend-line-hit-test';
 export { distanciaPonto, distanciaAoSegmento, distanciaALinha } from './chart/nt-geometry';

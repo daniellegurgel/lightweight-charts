@@ -19,8 +19,40 @@ export interface NtLineStyle {
 /** Estilo padrão */
 export const NT_LINE_DEFAULT_STYLE: NtLineStyle = {
 	color: '#2962FF',
-	width: 2,
+	width: 1,
 	dash: 'solid',
+};
+
+/** Configuração de comportamento da reta (extensão, ponto central) */
+export interface NtLineConfig {
+	extendLeft: boolean;
+	extendRight: boolean;
+	showMiddlePoint: boolean;
+}
+
+/** Configuração padrão */
+export const NT_LINE_DEFAULT_CONFIG: NtLineConfig = {
+	extendLeft: false,
+	extendRight: false,
+	showMiddlePoint: false,
+};
+
+/** Texto/label associado à reta */
+export interface NtLineLabel {
+	enabled: boolean;
+	text: string;
+	positionOnChart: 'left' | 'center' | 'right';
+	positionOnLine: 'above' | 'center' | 'below';
+	followAngle: boolean;
+}
+
+/** Label padrão */
+export const NT_LINE_DEFAULT_LABEL: NtLineLabel = {
+	enabled: false,
+	text: '',
+	positionOnChart: 'left',
+	positionOnLine: 'below',
+	followAngle: true,
 };
 
 /** Dados completos de uma reta */
@@ -29,6 +61,8 @@ export interface NtLineData {
 	point1: PointWorld;
 	point2: PointWorld;
 	style: NtLineStyle;
+	config: NtLineConfig;
+	label: NtLineLabel;
 	visible: boolean;
 	locked: boolean;
 }
@@ -42,13 +76,17 @@ export function gerarIdReta(): string {
 export function criarReta(
 	point1: PointWorld,
 	point2: PointWorld,
-	style?: Partial<NtLineStyle>
+	style?: Partial<NtLineStyle>,
+	config?: Partial<NtLineConfig>,
+	label?: Partial<NtLineLabel>
 ): NtLineData {
 	return {
 		id: gerarIdReta(),
 		point1,
 		point2,
 		style: { ...NT_LINE_DEFAULT_STYLE, ...style },
+		config: { ...NT_LINE_DEFAULT_CONFIG, ...config },
+		label: { ...NT_LINE_DEFAULT_LABEL, ...label },
 		visible: true,
 		locked: false,
 	};
@@ -118,12 +156,14 @@ export function retaToJSON(reta: NtLineData): object {
 		point1: reta.point1,
 		point2: reta.point2,
 		style: reta.style,
+		config: reta.config,
+		label: reta.label,
 		visible: reta.visible,
 		locked: reta.locked,
 	};
 }
 
-/** Reconstrói uma reta a partir de JSON */
+/** Reconstrói uma reta a partir de JSON (retrocompatível — config/label opcionais) */
 export function retaFromJSON(data: any): NtLineData | null {
 	if (!data || !data.point1 || !data.point2) return null;
 
@@ -136,6 +176,8 @@ export function retaFromJSON(data: any): NtLineData | null {
 			width: data.style?.width ?? NT_LINE_DEFAULT_STYLE.width,
 			dash: data.style?.dash ?? NT_LINE_DEFAULT_STYLE.dash,
 		},
+		config: { ...NT_LINE_DEFAULT_CONFIG, ...(data.config ?? {}) },
+		label: { ...NT_LINE_DEFAULT_LABEL, ...(data.label ?? {}) },
 		visible: data.visible ?? true,
 		locked: data.locked ?? false,
 	};

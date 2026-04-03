@@ -105,6 +105,8 @@ class NtDrawingsRenderer implements IPrimitivePaneRenderer {
 	draw(target: CanvasRenderingTarget2D): void {
 		target.useMediaCoordinateSpace((scope) => {
 			const ctx = scope.context;
+			const vpWidth = scope.mediaSize.width;
+			const vpHeight = scope.mediaSize.height;
 			const manager = this._primitive._getManager();
 			const tool = this._primitive._getTool();
 			const selectedId = manager.selectedId();
@@ -113,15 +115,23 @@ class NtDrawingsRenderer implements IPrimitivePaneRenderer {
 			for (const reta of manager.all()) {
 				if (!reta.visible) continue;
 
-				const p1 = manager.worldToPx(reta.point1);
-				const p2 = manager.worldToPx(reta.point2);
-				if (!p1 || !p2) continue;
+				try {
+					const result = manager.resolveRetaPx(reta);
+					if (!result) continue;
 
-				desenharReta(ctx, {
-					p1, p2,
-					style: reta.style,
-					selected: reta.id === selectedId,
-				});
+					desenharReta(ctx, {
+						p1: result.p1, p2: result.p2,
+						style: reta.style,
+						config: reta.config,
+						label: reta.label,
+						selected: reta.id === selectedId,
+						lineId: reta.id,
+						vpWidth,
+						vpHeight,
+					});
+				} catch (e) {
+					console.error('[NT-DRAW] Erro ao desenhar reta', reta.id, e);
+				}
 			}
 
 			// Desenhar preview (se tool tá em estado de criação)
