@@ -323,34 +323,45 @@ export class NtDrawingManager {
 	// Serialização
 	// ================================================================
 
-	/** Exporta todos os desenhos como JSON */
+	/**
+	 * Exporta todos os desenhos como JSON com chaves estáveis.
+	 * Usa prefixo "nt_" pra evitar conflito com nomes minificados (_internal_*).
+	 */
 	public exportJSON(): object[] {
 		return this.all().map(d => ({
-			id: d.id,
-			type: 'trend-line',
-			point1: d.point1,
-			point2: d.point2,
-			style: d.style,
-			config: d.config,
-			label: d.label,
-			visible: d.visible,
-			locked: d.locked,
+			'nt_id': d.id,
+			'nt_type': 'trend-line',
+			'nt_point1': d.point1,
+			'nt_point2': d.point2,
+			'nt_style': d.style,
+			'nt_config': d.config,
+			'nt_label': d.label,
+			'nt_visible': d.visible,
+			'nt_locked': d.locked,
 		}));
 	}
 
-	/** Importa desenhos de JSON (retrocompatível — config/label opcionais) */
+	/**
+	 * Importa desenhos de JSON.
+	 * Aceita formato nt_* (novo) e formato legado (sem prefixo).
+	 */
 	public importJSON(data: any[]): void {
 		for (const item of data) {
-			if (item.type === 'trend-line' && item.point1 && item.point2) {
+			// Detectar formato: nt_* (novo) ou legado
+			const type = item['nt_type'] ?? item.type;
+			const p1 = item['nt_point1'] ?? item.point1;
+			const p2 = item['nt_point2'] ?? item.point2;
+
+			if (type === 'trend-line' && p1 && p2) {
 				const reta: NtLineData = {
-					id: item.id || `nt-line-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-					point1: item.point1,
-					point2: item.point2,
-					style: item.style || { color: '#2962FF', width: 1, dash: 'solid' },
-					config: { ...NT_LINE_DEFAULT_CONFIG, ...(item.config ?? {}) },
-					label: { ...NT_LINE_DEFAULT_LABEL, ...(item.label ?? {}) },
-					visible: item.visible ?? true,
-					locked: item.locked ?? false,
+					id: item['nt_id'] ?? item.id ?? `nt-line-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+					point1: p1,
+					point2: p2,
+					style: item['nt_style'] ?? item.style ?? { color: '#2962FF', width: 1, dash: 'solid' },
+					config: { ...NT_LINE_DEFAULT_CONFIG, ...(item['nt_config'] ?? item.config ?? {}) },
+					label: { ...NT_LINE_DEFAULT_LABEL, ...(item['nt_label'] ?? item.label ?? {}) },
+					visible: item['nt_visible'] ?? item.visible ?? true,
+					locked: item['nt_locked'] ?? item.locked ?? false,
 				};
 				this.add(reta);
 			}
